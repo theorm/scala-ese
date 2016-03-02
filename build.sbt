@@ -18,11 +18,11 @@
  * Project metadata
  */
 
-name := "PROJECT"
+name := "scala-ece"
 
 version := "0.1"
 
-description := "PROJECT DESCRIPTION"
+description := "Scala implementation of https://tools.ietf.org/html/draft-thomson-http-encryption-01"
 
 // organization := "org.example"
 
@@ -32,7 +32,7 @@ description := "PROJECT DESCRIPTION"
 
 // homepage := Some(url("http://project.org"))
 
-startYear := Some(2015)
+startYear := Some(2016)
 
 licenses += "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")
 // "GPLv2" -> url("http://www.gnu.org/licenses/gpl-2.0.html")
@@ -41,7 +41,7 @@ licenses += "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html
  * scalac configuration
  */
 
-scalaVersion in ThisBuild := "2.11.7"
+scalaVersion in ThisBuild := "2.11.5"
 
 scalaSource in Compile := baseDirectory.value / "src"
 
@@ -178,6 +178,8 @@ libraryDependencies ++= Seq(
 , "org.joda"                          % "joda-money"                       % "0.11"
 , "org.jsoup"                         % "jsoup"                            % "1.8.3"
 , "org.scalactic"                    %% "scalactic"                        % "2.2.6"
+, "com.github.karasiq" 				 %% "cryptoutils" 					   % "1.3"
+, "commons-codec"	 				  % "commons-codec" 				   % "1.10"
 , "org.scalamock"                    %% "scalamock-scalatest-support"      % "3.2.2"        % Test
 , "org.scalatest"                    %% "scalatest"                        % "2.2.6"        % Test
 , "org.seleniumhq.selenium"           % "selenium-java"                    % "2.52.0"       % Test
@@ -257,14 +259,14 @@ wartremoverErrors ++= Seq(
 , Wart.Nothing
 , Wart.Null
 , Wart.Option2Iterable
-, Wart.OptionPartial
+// , Wart.OptionPartial
 , Wart.Product
 , Wart.Return
 , Wart.Serializable
-, Wart.Throw
+// , Wart.Throw
 //Wart.ToString
-, Wart.TryPartial
-, Wart.Var
+// , Wart.TryPartial
+// , Wart.Var
 )
 
 /*

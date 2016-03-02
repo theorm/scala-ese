@@ -1,9 +1,8 @@
-Scala Boilerplate
-=================
+# Encryped Content-Encoding for HTTP
 
-[![Build Status](https://travis-ci.org/marconilanna/scala-boilerplate.svg)](https://travis-ci.org/marconilanna/scala-boilerplate)
+Scala version of [https://github.com/martinthomson/encrypted-content-encoding](https://github.com/martinthomson/encrypted-content-encoding) which is based on [https://tools.ietf.org/html/draft-nottingham-http-encryption-encoding-00](https://tools.ietf.org/html/draft-nottingham-http-encryption-encoding-00).
 
-Assortment of default settings, best practices, and general goodies for Scala projects.
+## Tasks
 
 Scala REPL
 ----------

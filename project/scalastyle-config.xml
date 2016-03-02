@@ -14,27 +14,7 @@
     </parameters>
   </check>
   <check class="org.scalastyle.file.FileTabChecker" enabled="true" level="error"/>
-  <check class="org.scalastyle.file.HeaderMatchesChecker" enabled="true" level="error">
-    <parameters>
-      <parameter name="regex">true</parameter>
-      <parameter name="header">/\*
- \* Copyright (?:20\d{2}-)?20\d{2} Marconi Lanna
- \*
- \* Licensed under the Apache License, Version 2\.0 \(the "License"\);
- \* you may not use this file except in compliance with the License\.
- \* You may obtain a copy of the License at
- \*
- \*    http://www\.apache\.org/licenses/LICENSE-2\.0
- \*
- \* Unless required by applicable law or agreed to in writing, software
- \* distributed under the License is distributed on an "AS IS" BASIS,
- \* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied\.
- \* See the License for the specific language governing permissions and
- \* limitations under the License\.
- \*/</parameter>
-    </parameters>
-  </check>
-  <check class="org.scalastyle.file.IndentationChecker" enabled="true" level="error">
+  <check class="org.scalastyle.file.IndentationChecker" enabled="true" level="warn">
     <parameters>
       <parameter name="tabSize">2</parameter>
       <parameter name="methodParamIndentSize">2</parameter>
@@ -84,7 +64,7 @@
   <check class="org.scalastyle.scalariform.CovariantEqualsChecker" enabled="true" level="error"/>
   <check class="org.scalastyle.scalariform.CyclomaticComplexityChecker" enabled="true" level="error">
     <parameters>
-      <parameter name="maximum">10</parameter>
+      <parameter name="maximum">15</parameter>
     </parameters>
   </check>
   <check class="org.scalastyle.scalariform.DeprecatedJavaChecker" enabled="true" level="error"/>
@@ -110,11 +90,6 @@
     </parameters>
   </check>
   <check class="org.scalastyle.scalariform.EqualsHashCodeChecker" enabled="true" level="error"/>
-  <check class="org.scalastyle.scalariform.FieldNamesChecker" enabled="true" level="error">
-    <parameters>
-      <parameter name="regex">^[a-z][A-Za-z0-9]*$</parameter>
-    </parameters>
-  </check>
   <check class="org.scalastyle.scalariform.ForBraceChecker" enabled="true" level="error"/>
   <check class="org.scalastyle.scalariform.IfBraceChecker" enabled="true" level="error">
     <parameters>
@@ -126,20 +101,6 @@
     <parameter name="illegalImports">sun._,java.awt._,scala.collection.JavaConversions._,scala.collection.mutable._,scala.language.postfix</parameter>
   </check>
   <check class="org.scalastyle.scalariform.ImportGroupingChecker" enabled="true" level="error"/>
-  <check class="org.scalastyle.scalariform.ImportOrderChecker" enabled="true" level="error">
-    <parameters>
-      <parameter name="groups">PROJECT,com,net,org,others,play,scala,java,javax</parameter>
-      <parameter name="group.PROJECT">PROJECT\..+</parameter>
-      <parameter name="group.com">com\..+</parameter>
-      <parameter name="group.net">net\..+</parameter>
-      <parameter name="group.org">org\..+</parameter>
-      <parameter name="group.others">(?!(?:PROJECT|com|net|org|play|scala|java|javax)\.).+</parameter>
-      <parameter name="group.play">play\..+</parameter>
-      <parameter name="group.scala">scala\..+</parameter>
-      <parameter name="group.java">java\..+</parameter>
-      <parameter name="group.javax">javax\..+</parameter>
-    </parameters>
-  </check>
   <check class="org.scalastyle.scalariform.LowercasePatternMatchChecker" enabled="true" level="error"/>
   <check class="org.scalastyle.scalariform.MagicNumberChecker" enabled="true" level="error">
     <parameters>
@@ -160,7 +121,7 @@
   </check>
   <check class="org.scalastyle.scalariform.MultipleStringLiteralsChecker" enabled="true" level="error">
     <parameters>
-      <parameter name="allowed">1</parameter>
+      <parameter name="allowed">5</parameter>
       <parameter name="ignoreRegex">^\"\"$</parameter>
     </parameters>
   </check>
@@ -235,7 +196,7 @@
   <check class="org.scalastyle.scalariform.UnderscoreImportChecker" enabled="true" level="error"/>
   <check class="org.scalastyle.scalariform.UppercaseLChecker" enabled="true" level="error"/>
   <check class="org.scalastyle.scalariform.VarFieldChecker" enabled="true" level="error"/>
-  <check class="org.scalastyle.scalariform.VarLocalChecker" enabled="true" level="error"/>
+  <check class="org.scalastyle.scalariform.VarLocalChecker" enabled="true" level="warn"/>
   <check class="org.scalastyle.scalariform.WhileChecker" enabled="false" level="error"/>
   <check class="org.scalastyle.scalariform.XmlLiteralChecker" enabled="true" level="error"/>
 </scalastyle>
