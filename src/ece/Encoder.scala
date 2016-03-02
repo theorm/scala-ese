@@ -100,11 +100,12 @@ object Encoder {
       throw new Exception("padding exceeds block size")
     }
     val padCheck = Array.fill(pad)(0.toByte)
-    if (padCheck != result.slice(1, 1 + pad)) {
-      throw new Exception("invalid padding")
+    if (padCheck.deep != result.slice(1, 1 + pad).deep) {
+      throw new Exception(
+        s"Invalid padding: ${padCheck.deep} != ${result.slice(1, 1 + pad).deep}"
+      )
     }
-
-    result.takeRight(1 + pad);
+    result.slice(1 + pad, result.length);
   }
 
   def encryptRecord(key: Key, counter: Int, data: Array[Byte]): Array[Byte] = {
@@ -153,7 +154,8 @@ object Encoder {
         if (end == data.length) {
           throw new Exception("Truncated payload")
         }
-        end = Math.min(end, Utils.AuthTagLength)
+
+        end = Math.min(end, data.length)
         if ((end - start) <= Utils.AuthTagLength) {
           throw new Error(
             s"Invalid block: too small at $i: ${end - start} <= ${Utils.AuthTagLength}"

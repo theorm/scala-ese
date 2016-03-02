@@ -18,6 +18,9 @@ class EncryptSpec extends FixtureSpec {
     "Can decrypt encrypted" in {
       val encrypted = Encoder.encrypt(testData, testEncryptOptions).get
       val decrypted = Encoder.decrypt(encrypted, testEncryptOptions).get
+      System.out.println(testData.map(_.toChar).length)
+      System.out.println(encrypted.map(_.toChar).length)
+      System.out.println(decrypted.map(_.toChar).length)
       assert(decrypted === testData)
     }
   }
