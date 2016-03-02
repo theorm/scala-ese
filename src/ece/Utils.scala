@@ -25,6 +25,7 @@ import org.bouncycastle.jce.ECPointUtil
 import java.security.spec.ECPublicKeySpec
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
 import java.security.MessageDigest
+import org.bouncycastle.util.BigIntegers
 
 object Utils {
   final val KeyLength: Int = 16;
@@ -66,7 +67,7 @@ object Utils {
     Array.concat(nonce.slice(0, NonceLength / 2), x.toByteArray)
   }
 
-  def ecdhGetSharedSecretAndLocalKey(publicKey: Array[Byte]): Tuple2[Array[Byte], Array[Byte]] = {
+  def ecdhGetSharedSecretAndLocalKey(publicKey: PublicKey): Tuple2[Array[Byte], Array[Byte]] = {
     val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("prime192v1")
     val g: KeyPairGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
     g.initialize(ecSpec);
@@ -75,11 +76,21 @@ object Utils {
 
     val keyOneAgreement: BasicAgreement = new ECDHBasicAgreement()
     keyOneAgreement.init(ECUtil.generatePrivateKeyParameter(pair.getPrivate()))
-    val sharedSecret = keyOneAgreement.calculateAgreement(
-      ECUtil.generatePublicKeyParameter(getPublicKeyFromBytes(publicKey))
-    ).toByteArray()
+    val sharedSecret: BigInteger = keyOneAgreement.calculateAgreement(
+      ECUtil.generatePublicKeyParameter(publicKey)
+    )
 
-    new Tuple2(sharedSecret, localPublicKey)
+    // make key fixed length : http://bit.ly/1Qmiu7K
+    val sharedSecretArray = BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, sharedSecret)
+    System.out.println(s"IIIIIIII ${sharedSecretArray.length}")
+    new Tuple2(sharedSecretArray, localPublicKey)
+  }
+
+  def generatePublicAndPrivateKeys(): KeyPair = {
+    val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("prime192v1")
+    val g: KeyPairGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
+    g.initialize(ecSpec);
+    g.generateKeyPair()
   }
 
   def getPublicKeyFromBytes(pubKey: Array[Byte]): PublicKey = {

@@ -65,7 +65,7 @@ object Encoder {
         // if key is present - check the length
         case key: Some[Array[Byte]] => {
           key.get match {
-            case s: Any if s.length == Utils.KeyLength => s
+            case s: Any if s.length == Utils.KeyLength * 2 => s
             case _ => throw new Exception(s"Key length must be ${Utils.KeyLength}")
           }
         }

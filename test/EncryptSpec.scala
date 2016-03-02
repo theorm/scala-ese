@@ -4,14 +4,19 @@ import ece.{Encoder, Options, Utils}
 import java.security.SecureRandom
 
 class EncryptSpec extends FixtureSpec {
-  val publicKey: Array[Byte] = Array.ofDim(Utils.KeyLength)
-  val rg = new SecureRandom()
-  rg.nextBytes(publicKey)
+  // val publicKey: Array[Byte] = Array.ofDim(Utils.KeyLength)
+  // val rg = new SecureRandom()
+  // rg.nextBytes(publicKey)
 
-  //  val sharedSecretAndPublicKey = Utils.ecdhGetSharedSecretAndLocalKey(publicKey)
-  //  val sharedSecret = sharedSecretAndPublicKey._1
+  val keyPair = Utils.generatePublicAndPrivateKeys()
+  val publicKey = keyPair.getPublic
 
-  val testEncryptOptions = new Options(key = Some(publicKey), salt = Utils.generateSalt())
+  val sharedSecretAndPublicKey = Utils.ecdhGetSharedSecretAndLocalKey(publicKey)
+  val sharedSecret = sharedSecretAndPublicKey._1
+
+  System.out.println(s"XXX: ${sharedSecret.length}")
+
+  val testEncryptOptions = new Options(key = Some(sharedSecret), salt = Utils.generateSalt())
   val testData = "Foo Bar 123".toCharArray().map(_.toByte)
 
   "Test:" - {
