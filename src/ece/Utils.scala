@@ -1,31 +1,29 @@
 package ece
 
-import org.apache.commons.codec.binary.Base64
-import scala.util.Random
-import org.bouncycastle.jce.ECNamedCurveTable
-import javax.crypto.spec.SecretKeySpec
-import javax.crypto.Mac
-import org.bouncycastle.crypto.{BasicAgreement, CipherParameters}
-import org.bouncycastle.crypto.agreement.ECDHBasicAgreement
-import scala.math.BigInt
 import java.math.BigInteger
-import org.bouncycastle.jce.spec.ECParameterSpec
-import java.security.KeyPairGenerator
-import java.security.KeyPair
-import org.bouncycastle.crypto.params.KeyParameter
-import java.security.Security
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.jcajce.provider.asymmetric.util.ECUtil
 import java.security.KeyFactory
-import java.security.spec.X509EncodedKeySpec
+import java.security.KeyPair
+import java.security.KeyPairGenerator
 import java.security.PublicKey
-import org.bouncycastle.jce.spec.ECNamedCurveSpec
+import java.security.SecureRandom
+import java.security.Security
 import java.security.spec.ECPoint
-import org.bouncycastle.jce.ECPointUtil
 import java.security.spec.ECPublicKeySpec
+import scala.math.BigInt
+import scala.math.BigInt.int2bigInt
+import org.bouncycastle.crypto.BasicAgreement
+import org.bouncycastle.crypto.agreement.ECDHBasicAgreement
+import org.bouncycastle.jcajce.provider.asymmetric.util.ECUtil
+import org.bouncycastle.jce.ECNamedCurveTable
+import org.bouncycastle.jce.ECPointUtil
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
-import java.security.MessageDigest
+import org.bouncycastle.jce.spec.ECNamedCurveSpec
+import org.bouncycastle.jce.spec.ECParameterSpec
 import org.bouncycastle.util.BigIntegers
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import org.bouncycastle.crypto.util.PublicKeyFactory
 
 object Utils {
   final val KeyLength: Int = 16;
@@ -38,10 +36,11 @@ object Utils {
   /**
    * Returns salt as Base64 encoded string.
    */
-  def generateSalt(): String = {
+  def generateSalt(): Array[Byte] = {
     val bytes: Array[Byte] = Array.ofDim(KeyLength);
-    Random.nextBytes(bytes)
-    new String(Base64.encodeBase64(bytes).map(_.toChar))
+    val sr = new SecureRandom()
+    sr.nextBytes(bytes)
+    bytes
   }
 
   def getHmacHash(key: Array[Byte], input: Array[Byte]): Array[Byte] = {
@@ -51,13 +50,7 @@ object Utils {
     mac.doFinal(input)
   }
 
-  def ecdhComputeSecret(keyOne: Array[Byte], keyTwo: Array[Byte]): Array[Byte] = {
-    val keyOneAgreement: BasicAgreement = new ECDHBasicAgreement()
-    keyOneAgreement.init(new KeyParameter(keyOne))
-    keyOneAgreement.calculateAgreement(new KeyParameter(keyTwo)).toByteArray()
-  }
-
-  def generateNonce(base: Array[Byte], counter: Int): Array[Byte] = {
+  def generateIV(base: Array[Byte], counter: Int): Array[Byte] = {
     val nonce: Array[Byte] = base.clone()
     val m = new BigInt(new BigInteger(nonce.takeRight(NonceLength / 2)))
 
@@ -67,12 +60,12 @@ object Utils {
     Array.concat(nonce.slice(0, NonceLength / 2), x.toByteArray)
   }
 
-  def ecdhGetSharedSecretAndLocalKey(publicKey: PublicKey): Tuple2[Array[Byte], Array[Byte]] = {
-    val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("prime192v1")
-    val g: KeyPairGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
-    g.initialize(ecSpec);
-    val pair: KeyPair = g.generateKeyPair()
-    val localPublicKey: Array[Byte] = pair.getPublic().getEncoded()
+  /**
+   * Given public key, generate another key pair and compute a shared
+   * secret using Elliptic Curve Diffie Hellman method.
+   */
+  def ecdhGetSharedSecretAndLocalKey(publicKey: PublicKey): Tuple2[Array[Byte], PublicKey] = {
+    val pair: KeyPair = generateECDSKeyPair()
 
     val keyOneAgreement: BasicAgreement = new ECDHBasicAgreement()
     keyOneAgreement.init(ECUtil.generatePrivateKeyParameter(pair.getPrivate()))
@@ -81,12 +74,11 @@ object Utils {
     )
 
     // make key fixed length : http://bit.ly/1Qmiu7K
-    val sharedSecretArray = BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, sharedSecret)
-    System.out.println(s"IIIIIIII ${sharedSecretArray.length}")
-    new Tuple2(sharedSecretArray, localPublicKey)
+    val sharedSecretArray = BigIntegers.asUnsignedByteArray(Utils.KeyLength * 12, sharedSecret)
+    new Tuple2(sharedSecretArray, pair.getPublic())
   }
 
-  def generatePublicAndPrivateKeys(): KeyPair = {
+  def generateECDSKeyPair(): KeyPair = {
     val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("prime192v1")
     val g: KeyPairGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
     g.initialize(ecSpec);

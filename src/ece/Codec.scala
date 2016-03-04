@@ -12,14 +12,8 @@ import java.security.spec.AlgorithmParameterSpec
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 
-class Key(val key: Array[Byte], val nonce: Array[Byte])
-
-object Encoder {
+object Codec {
   val savedKeys: Map[String, Array[Byte]] = new HashMap[String, Array[Byte]]()
-
-  def computeSecret(secret: Array[Byte], share: Array[Byte]): Array[Byte] = {
-    Utils.ecdhComputeSecret(secret, share)
-  }
 
   def hdkfExtract(salt: Array[Byte], secret: Array[Byte]): Array[Byte] = {
     Utils.getHmacHash(salt, secret)
@@ -36,64 +30,22 @@ object Encoder {
       counter += 1
       cbuf.update(0, counter.toByte)
       t = Utils.getHmacHash(prk, Array.concat(t, info, cbuf))
-      output = Array.concat(output, t)
+      output = output ++ t
     }
 
     output.take(length)
   }
 
-  private def extractKey(opts: Options): Try[Key] = {
-    Try {
-      val secret: Array[Byte] = opts.key match {
-        case None => {
-          opts.dh match {
-            case None => {
-              opts.keyId match {
-                case None => throw new Exception(
-                  "Options must have either 'key' or 'keyId' or 'dh'"
-                )
-                case keyId: Any => savedKeys.get(keyId.get).get
-              }
-            }
-            case dh: Any => {
-              val share = Base64.decodeBase64(dh.get)
-              val s = savedKeys.get(opts.keyId.get).get
-              computeSecret(s, share)
-            }
-          }
-        }
-        // if key is present - check the length
-        case key: Some[Array[Byte]] => {
-          key.get match {
-            case s: Any if s.length == Utils.KeyLength * 2 => s
-            case _ => throw new Exception(s"Key length must be ${Utils.KeyLength}")
-          }
-        }
-      }
-
-      val salt = Base64.decodeBase64(opts.salt) match {
-        case salt: Any if salt.length == Utils.KeyLength => salt
-        case _ => throw new Exception(s"Salt length must be ${Utils.KeyLength}")
-      }
-
-      val prk = hdkfExtract(salt, secret)
-
-      new Key(
-        hdkfExpand(prk, "Content-Encoding: aesgcm128", Utils.KeyLength),
-        hdkfExpand(prk, "Content-Encoding: nonce", Utils.NonceLength)
-      )
-    }
-  }
-
-  def decryptRecord(key: Key, counter: Int, data: Array[Byte]): Array[Byte] = {
-    val nonce: Array[Byte] = Utils.generateNonce(key.nonce, counter)
+  def decryptRecord(secret: Array[Byte], salt: Array[Byte], counter: Int,
+    data: Array[Byte]): Array[Byte] = {
+    val iv: Array[Byte] = Utils.generateIV(salt, counter)
     val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding");
     cipher.init(
       Cipher.DECRYPT_MODE,
-      new SecretKeySpec(key.key, "AES"),
-      new GCMParameterSpec(Utils.AuthTagLength * 8, nonce)
+      new SecretKeySpec(secret, "AES"),
+      new GCMParameterSpec(Utils.AuthTagLength * 8, iv)
     )
-    val result: Array[Byte] = Array.concat(cipher.update(data), cipher.doFinal())
+    val result: Array[Byte] = cipher.update(data) ++ cipher.doFinal()
 
     val pad = result(0).toInt;
     if (pad + 1 > result.length) {
@@ -108,31 +60,39 @@ object Encoder {
     result.slice(1 + pad, result.length);
   }
 
-  def encryptRecord(key: Key, counter: Int, data: Array[Byte]): Array[Byte] = {
-    val nonce: Array[Byte] = Utils.generateNonce(key.nonce, counter)
+  def encryptRecord(secret: Array[Byte], salt: Array[Byte], counter: Int,
+    data: Array[Byte]): Array[Byte] = {
+    val iv: Array[Byte] = Utils.generateIV(salt, counter)
     val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding");
-    val eks: SecretKeySpec = new SecretKeySpec(key.key, "AES")
-    cipher.init(Cipher.ENCRYPT_MODE, eks, new GCMParameterSpec(Utils.AuthTagLength * 8, nonce))
+    val eks: SecretKeySpec = new SecretKeySpec(secret, "AES")
+    cipher.init(Cipher.ENCRYPT_MODE, eks, new GCMParameterSpec(Utils.AuthTagLength * 8, iv))
 
     val padding = Array.fill(1)(0.toByte)
     val epadding = cipher.update(padding)
     val ebuffer = cipher.update(data)
     val efinal = cipher.doFinal()
-    Array.concat(epadding, ebuffer, efinal)
+    epadding ++ ebuffer ++ efinal
   }
 
   def encrypt(data: Array[Byte], opts: Options): Try[Array[Byte]] = {
     Try {
-      val key: Key = extractKey(opts).get
+      val secret: Array[Byte] = opts.secret
+      val salt: Array[Byte] = opts.salt
       val recordSize: Int = opts.recordSize.get
       var i: Int = 0
       var start: Int = 0
       var result: Array[Byte] = Array.ofDim(0)
 
+      if (secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
+        throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
+      }
+
+      System.out.println(s"Secret L ${secret.length}")
+
       while (start <= data.length) {
         val end: Int = Math.min(start + recordSize - 1, data.length)
-        val block: Array[Byte] = encryptRecord(key, i, data.slice(start, end))
-        result = Array.concat(result, block)
+        val block: Array[Byte] = encryptRecord(secret, salt, i, data.slice(start, end))
+        result ++= block
         start += recordSize - 1
         i += 1
       }
@@ -143,11 +103,16 @@ object Encoder {
 
   def decrypt(data: Array[Byte], opts: Options): Try[Array[Byte]] = {
     Try {
-      val key: Key = extractKey(opts).get
+      val secret: Array[Byte] = opts.secret
+      val salt: Array[Byte] = opts.salt
       val recordSize: Int = opts.recordSize.get
       var i: Int = 0
       var start: Int = 0
       var result: Array[Byte] = Array.ofDim(0)
+
+      if (secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
+        throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
+      }
 
       while (start < data.length) {
         var end = start + recordSize + Utils.AuthTagLength
@@ -161,8 +126,8 @@ object Encoder {
             s"Invalid block: too small at $i: ${end - start} <= ${Utils.AuthTagLength}"
           );
         }
-        val block = decryptRecord(key, i, data.slice(start, end))
-        result = Array.concat(result, block)
+        val block = decryptRecord(secret, salt, i, data.slice(start, end))
+        result ++= block
         start = end
         i += 1
       }
