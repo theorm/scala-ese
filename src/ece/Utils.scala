@@ -74,7 +74,7 @@ object Utils {
     )
 
     // make key fixed length : http://bit.ly/1Qmiu7K
-    val sharedSecretArray = BigIntegers.asUnsignedByteArray(Utils.KeyLength * 12, sharedSecret)
+    val sharedSecretArray = BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, sharedSecret)
     new Tuple2(sharedSecretArray, pair.getPublic())
   }
 

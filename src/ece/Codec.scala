@@ -76,18 +76,21 @@ object Codec {
 
   def encrypt(data: Array[Byte], opts: Options): Try[Array[Byte]] = {
     Try {
-      val secret: Array[Byte] = opts.secret
-      val salt: Array[Byte] = opts.salt
+      if (opts.secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
+        throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
+      }
+      val secret: Array[Byte] = hdkfExpand(
+        opts.secret,
+        "Content-Encoding: aesgcm128", Utils.KeyLength
+      )
+      val salt: Array[Byte] = hdkfExpand(
+        opts.salt,
+        "Content-Encoding: nonce", Utils.NonceLength
+      )
       val recordSize: Int = opts.recordSize.get
       var i: Int = 0
       var start: Int = 0
       var result: Array[Byte] = Array.ofDim(0)
-
-      if (secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
-        throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
-      }
-
-      System.out.println(s"Secret L ${secret.length}")
 
       while (start <= data.length) {
         val end: Int = Math.min(start + recordSize - 1, data.length)
@@ -102,17 +105,22 @@ object Codec {
   }
 
   def decrypt(data: Array[Byte], opts: Options): Try[Array[Byte]] = {
+    if (opts.secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
+      throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
+    }
     Try {
-      val secret: Array[Byte] = opts.secret
-      val salt: Array[Byte] = opts.salt
+      val secret: Array[Byte] = hdkfExpand(
+        opts.secret,
+        "Content-Encoding: aesgcm128", Utils.KeyLength
+      )
+      val salt: Array[Byte] = hdkfExpand(
+        opts.salt,
+        "Content-Encoding: nonce", Utils.NonceLength
+      )
       val recordSize: Int = opts.recordSize.get
       var i: Int = 0
       var start: Int = 0
       var result: Array[Byte] = Array.ofDim(0)
-
-      if (secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
-        throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
-      }
 
       while (start < data.length) {
         var end = start + recordSize + Utils.AuthTagLength

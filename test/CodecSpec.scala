@@ -15,7 +15,6 @@ class EncryptSpec extends FixtureSpec {
 
   val ecdsSharedSecretAndPublicKey = Utils.ecdhGetSharedSecretAndLocalKey(publicKey)
   val ecdsSharedSecret = ecdsSharedSecretAndPublicKey._1
-  System.out.println(s"XXX ${ecdsSharedSecret.length}")
 
   // 3. invalid length secret
   val invalidLength = 12

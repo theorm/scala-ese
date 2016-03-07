@@ -121,7 +121,7 @@
   </check>
   <check class="org.scalastyle.scalariform.MultipleStringLiteralsChecker" enabled="true" level="error">
     <parameters>
-      <parameter name="allowed">5</parameter>
+      <parameter name="allowed">10</parameter>
       <parameter name="ignoreRegex">^\"\"$</parameter>
     </parameters>
   </check>
