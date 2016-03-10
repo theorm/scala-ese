@@ -1,43 +1,30 @@
 package ece;
 
 import org.apache.commons.codec.binary.Base64
-
 import scala.util.Try
-
 import javax.crypto.Cipher
 import javax.crypto.spec.{GCMParameterSpec, SecretKeySpec}
 import java.security.AlgorithmParameters
 import java.security.spec.AlgorithmParameterSpec
-
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
+import org.bouncycastle.crypto.generators.HKDFBytesGenerator
+import org.bouncycastle.crypto.digests.SHA256Digest
+import org.bouncycastle.crypto.params.HKDFParameters
+import java.math.BigInteger
 
 object Codec {
-  val savedKeys: Map[String, Array[Byte]] = new HashMap[String, Array[Byte]]()
+  def hdkfExpand(prk: Array[Byte], header: String, length: Int, salt: Array[Byte]): Array[Byte] = {
+    val hkdf: HKDFBytesGenerator = new HKDFBytesGenerator(new SHA256Digest());
+    hkdf.init(new HKDFParameters(prk, salt, header.getBytes()))
 
-  def hdkfExtract(salt: Array[Byte], secret: Array[Byte]): Array[Byte] = {
-    Utils.getHmacHash(salt, secret)
-  }
-
-  def hdkfExpand(prk: Array[Byte], header: String, length: Int): Array[Byte] = {
-    var output: Array[Byte] = Array.ofDim(0)
-    var t: Array[Byte] = Array.ofDim(0)
-    val info = header.toCharArray().map(_.toByte)
-    val cbuf: Array[Byte] = Array.ofDim(1)
-    var counter: Int = 0;
-
-    while (output.length < 1) {
-      counter += 1
-      cbuf.update(0, counter.toByte)
-      t = Utils.getHmacHash(prk, Array.concat(t, info, cbuf))
-      output = output ++ t
-    }
-
-    output.take(length)
+    val output: Array[Byte] = Array.fill(length)(0.toByte)
+    hkdf.generateBytes(output, 0, length)
+    output
   }
 
   def decryptRecord(secret: Array[Byte], salt: Array[Byte], counter: Int,
-    data: Array[Byte]): Array[Byte] = {
+    data: Array[Byte], padSize: Int): Array[Byte] = {
     val iv: Array[Byte] = Utils.generateIV(salt, counter)
     val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding");
     cipher.init(
@@ -47,97 +34,94 @@ object Codec {
     )
     val result: Array[Byte] = cipher.update(data) ++ cipher.doFinal()
 
-    val pad = result(0).toInt;
-    if (pad + 1 > result.length) {
+    val pad = new BigInt(new BigInteger(result.slice(0, padSize)))
+
+    if (pad + padSize > result.length) {
       throw new Exception("padding exceeds block size")
     }
-    val padCheck = Array.fill(pad)(0.toByte)
-    if (padCheck.deep != result.slice(1, 1 + pad).deep) {
-      throw new Exception(
-        s"Invalid padding: ${padCheck.deep} != ${result.slice(1, 1 + pad).deep}"
-      )
+    val padCheck = Array.fill(pad.toInt)(0.toByte)
+
+    if (padCheck.deep != result.slice(padSize, padSize + pad.toInt).deep) {
+      throw new Exception("Invalid padding")
     }
-    result.slice(1 + pad, result.length);
+    result.slice(padSize + pad.toInt, result.length);
   }
 
   def encryptRecord(secret: Array[Byte], salt: Array[Byte], counter: Int,
-    data: Array[Byte]): Array[Byte] = {
+    data: Array[Byte], padSize: Int): Array[Byte] = {
     val iv: Array[Byte] = Utils.generateIV(salt, counter)
     val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding");
     val eks: SecretKeySpec = new SecretKeySpec(secret, "AES")
     cipher.init(Cipher.ENCRYPT_MODE, eks, new GCMParameterSpec(Utils.AuthTagLength * 8, iv))
 
-    val padding = Array.fill(1)(0.toByte)
-    val epadding = cipher.update(padding)
-    val ebuffer = cipher.update(data)
-    val efinal = cipher.doFinal()
-    epadding ++ ebuffer ++ efinal
+    val padding = Array.fill(padSize)(0.toByte)
+
+    cipher.update(padding ++ data) ++ cipher.doFinal()
   }
 
   def encrypt(data: Array[Byte], opts: Options): Try[Array[Byte]] = {
     Try {
-      if (opts.secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
-        throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
+      if (opts.recordSize < opts.padSize) {
+        throw new Exception("Record size is too small")
       }
+
       val secret: Array[Byte] = hdkfExpand(
         opts.secret,
-        "Content-Encoding: aesgcm128", Utils.KeyLength
+        buildInfo("aesgcm128", ""), Utils.KeyLength,
+        opts.salt
       )
       val salt: Array[Byte] = hdkfExpand(
-        opts.salt,
-        "Content-Encoding: nonce", Utils.NonceLength
+        opts.secret,
+        buildInfo("nonce", ""), Utils.NonceLength,
+        opts.salt
       )
-      val recordSize: Int = opts.recordSize.get
-      var i: Int = 0
-      var start: Int = 0
+      val recordSize: Int = opts.recordSize - opts.padSize
+      var counter: Int = 0
       var result: Array[Byte] = Array.ofDim(0)
 
-      while (start <= data.length) {
-        val end: Int = Math.min(start + recordSize - 1, data.length)
-        val block: Array[Byte] = encryptRecord(secret, salt, i, data.slice(start, end))
-        result ++= block
-        start += recordSize - 1
-        i += 1
+      for { i <- Array.range(0, data.length + opts.padSize, recordSize) } {
+        result = result ++
+          encryptRecord(secret, salt, counter, data.slice(i, i + recordSize), opts.padSize)
+        counter = counter + 1
       }
 
       result
     }
   }
 
+  def buildInfo(t: String, context: String): String = {
+    s"Content-Encoding: $t" ++ 0.toChar.toString() ++ context
+  }
+
   def decrypt(data: Array[Byte], opts: Options): Try[Array[Byte]] = {
-    if (opts.secret.length.toDouble % Utils.KeyLength.toDouble != 0) {
-      throw new Exception(s"Secret length must be a multiple of ${Utils.KeyLength}")
-    }
     Try {
+      if (opts.recordSize < opts.padSize) {
+        throw new Exception("Record size is too small")
+      }
+
       val secret: Array[Byte] = hdkfExpand(
         opts.secret,
-        "Content-Encoding: aesgcm128", Utils.KeyLength
+        buildInfo("aesgcm128", ""), Utils.KeyLength,
+        opts.salt
       )
       val salt: Array[Byte] = hdkfExpand(
-        opts.salt,
-        "Content-Encoding: nonce", Utils.NonceLength
+        opts.secret,
+        buildInfo("nonce", ""), Utils.NonceLength,
+        opts.salt
       )
-      val recordSize: Int = opts.recordSize.get
-      var i: Int = 0
-      var start: Int = 0
+
+      val recordSize: Int = opts.recordSize + Utils.AuthTagLength
+      if (data.length % recordSize == 0) {
+        throw new Exception("Message truncated")
+      }
+
+      var counter: Int = 0
       var result: Array[Byte] = Array.ofDim(0)
 
-      while (start < data.length) {
-        var end = start + recordSize + Utils.AuthTagLength
-        if (end == data.length) {
-          throw new Exception("Truncated payload")
-        }
-
-        end = Math.min(end, data.length)
-        if ((end - start) <= Utils.AuthTagLength) {
-          throw new Error(
-            s"Invalid block: too small at $i: ${end - start} <= ${Utils.AuthTagLength}"
-          );
-        }
-        val block = decryptRecord(secret, salt, i, data.slice(start, end))
-        result ++= block
-        start = end
-        i += 1
+      for { i <- Array.range(0, data.length, recordSize) } {
+        result = result ++
+          decryptRecord(secret, salt, counter, data.slice(i, i + recordSize), opts.padSize)
+        counter = counter + 1
       }
 
       result

@@ -180,9 +180,9 @@ libraryDependencies ++= Seq(
 // , "org.scalactic"                    %% "scalactic"                        % "2.2.6"
  "com.github.karasiq" 				 %% "cryptoutils" 					   % "1.3"
 , "commons-codec"	 				  % "commons-codec" 				   % "1.10"
-// , "org.scalamock"                    %% "scalamock-scalatest-support"      % "3.2.2"        % Test
-// , "org.scalatest"                    %% "scalatest"                        % "2.2.6"        % Test
-// , "org.seleniumhq.selenium"           % "selenium-java"                    % "2.52.0"       % Test
+, "org.scalamock"                    %% "scalamock-scalatest-support"      % "3.2.2"        % Test
+, "org.scalatest"                    %% "scalatest"                        % "2.2.6"        % Test
+, "org.seleniumhq.selenium"           % "selenium-java"                    % "2.52.0"       % Test
 )
 
 /*

@@ -30,6 +30,7 @@ object Utils {
   final val DefaultRecordSize: Int = 4096;
   final val NonceLength: Int = 12;
   final val AuthTagLength: Int = 16;
+  final val DefaultPadSize: Int = 2;
 
   Security.addProvider(new BouncyCastleProvider())
 
@@ -52,12 +53,10 @@ object Utils {
 
   def generateIV(base: Array[Byte], counter: Int): Array[Byte] = {
     val nonce: Array[Byte] = base.clone()
-    val m = new BigInt(new BigInteger(nonce.takeRight(NonceLength / 2)))
-
-    val x: BigInt = (m.pow(counter) & 0xffffff) +
-      ((((m / 0x1000000) ^ (counter / 0x1000000)) & 0xffffff) * 0x1000000)
-
-    Array.concat(nonce.slice(0, NonceLength / 2), x.toByteArray)
+    val magic = 4
+    val m = new BigInt(new BigInteger(nonce.slice(magic, nonce.length)))
+    val x = counter ^ m
+    Array.concat(nonce.slice(0, magic), x.toByteArray)
   }
 
   /**
@@ -95,5 +94,9 @@ object Utils {
     val point: ECPoint = ECPointUtil.decodePoint(params.getCurve(), pubKey)
     val pubKeySpec: ECPublicKeySpec = new ECPublicKeySpec(point, params)
     kf.generatePublic(pubKeySpec)
+  }
+
+  def asHex(buf: Array[Byte]): String = {
+    buf.map("%02X" format _).mkString
   }
 }
