@@ -8,7 +8,6 @@ import java.security.PublicKey
 import java.security.SecureRandom
 import java.security.Security
 import java.security.spec.ECPoint
-import java.security.spec.ECPublicKeySpec
 import scala.math.BigInt
 import scala.math.BigInt.int2bigInt
 import org.bouncycastle.crypto.BasicAgreement
@@ -19,11 +18,17 @@ import org.bouncycastle.jce.ECPointUtil
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
 import org.bouncycastle.jce.spec.ECNamedCurveSpec
-import org.bouncycastle.jce.spec.ECParameterSpec
 import org.bouncycastle.util.BigIntegers
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import org.bouncycastle.crypto.util.PublicKeyFactory
+import java.security.PrivateKey
+import org.bouncycastle.jce.spec.ECParameterSpec
+import org.bouncycastle.jce.spec.ECPublicKeySpec
+import org.bouncycastle.jce.spec.ECPrivateKeySpec
+import java.security.spec.X509EncodedKeySpec
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.EncodedKeySpec
 
 object Utils {
   final val KeyLength: Int = 16;
@@ -63,36 +68,50 @@ object Utils {
    * Given public key, generate another key pair and compute a shared
    * secret using Elliptic Curve Diffie Hellman method.
    */
-  def ecdhGetSharedSecretAndLocalKey(publicKey: PublicKey): Tuple2[Array[Byte], PublicKey] = {
-    val pair: KeyPair = generateECDSKeyPair()
-
-    val keyOneAgreement: BasicAgreement = new ECDHBasicAgreement()
-    keyOneAgreement.init(ECUtil.generatePrivateKeyParameter(pair.getPrivate()))
-    val sharedSecret: BigInteger = keyOneAgreement.calculateAgreement(
-      ECUtil.generatePublicKeyParameter(publicKey)
-    )
-
-    // make key fixed length : http://bit.ly/1Qmiu7K
-    val sharedSecretArray = BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, sharedSecret)
-    new Tuple2(sharedSecretArray, pair.getPublic())
+  def ecdhGetSharedSecretAndKeyPair(publicKey: PublicKey): Tuple2[Array[Byte], KeyPair] = {
+    val pair: KeyPair = generateECDHKeyPair()
+    val sharedSecretArray = getECDHSharedSecret(pair, publicKey)
+    new Tuple2(sharedSecretArray, pair)
   }
 
-  def generateECDSKeyPair(): KeyPair = {
-    val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("prime192v1")
-    val g: KeyPairGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
+  def getECDHSharedSecret(keyPair: KeyPair, pubKey: PublicKey): Array[Byte] = {
+    val agreement: BasicAgreement = new ECDHBasicAgreement()
+    agreement.init(ECUtil.generatePrivateKeyParameter(keyPair.getPrivate()))
+    val sharedSecret: BigInteger = agreement.calculateAgreement(
+      ECUtil.generatePublicKeyParameter(pubKey)
+    )
+    // make key fixed length : http://bit.ly/1Qmiu7K
+    BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, sharedSecret)
+  }
+
+  def generateECDHKeyPair(): KeyPair = {
+    val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("prime256v1")
+    val g: KeyPairGenerator = KeyPairGenerator.getInstance("ECDH", "BC");
     g.initialize(ecSpec);
     g.generateKeyPair()
   }
 
+  def constructECDHKeyPairFromKeys(pubKey: Array[Byte], privKey: Array[Byte]): KeyPair = {
+    val spec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("prime256v1")
+    val kf: KeyFactory = KeyFactory.getInstance("ECDH", "BC")
+    val pubKeySpec: ECPublicKeySpec = new ECPublicKeySpec(
+      spec.getCurve().decodePoint(pubKey), spec
+    )
+    val privKeySpec: ECPrivateKeySpec = new ECPrivateKeySpec(
+      new BigInteger(privKey), spec
+    )
+
+    val puk: PublicKey = kf.generatePublic(pubKeySpec)
+    val prk: PrivateKey = kf.generatePrivate(privKeySpec)
+    new KeyPair(puk, prk)
+  }
+
   def getPublicKeyFromBytes(pubKey: Array[Byte]): PublicKey = {
     val spec: ECNamedCurveParameterSpec = ECNamedCurveTable.getParameterSpec("prime256v1")
-    val kf: KeyFactory = KeyFactory.getInstance("ECDSA", "BC")
-    val params: ECNamedCurveSpec = new ECNamedCurveSpec(
-      "prime256v1",
-      spec.getCurve(), spec.getG(), spec.getN()
+    val kf: KeyFactory = KeyFactory.getInstance("ECDH", "BC")
+    val pubKeySpec: ECPublicKeySpec = new ECPublicKeySpec(
+      spec.getCurve().decodePoint(pubKey), spec
     )
-    val point: ECPoint = ECPointUtil.decodePoint(params.getCurve(), pubKey)
-    val pubKeySpec: ECPublicKeySpec = new ECPublicKeySpec(point, params)
     kf.generatePublic(pubKeySpec)
   }
 
