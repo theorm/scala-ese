@@ -52,16 +52,22 @@ class EncryptSpec extends FixtureSpec {
       )
       System.out.println(s"PUK1:                                                     ${asHex(receiverPublicKey)}")
       System.out.println(s"PUK2: ${asHex(receiverKeyPair.getPublic().getEncoded())}")
+      System.out.println(s"PUK3:                                                     ${asHex(Utils.getRawPublicKeyFromKeyPair(receiverKeyPair))}")
       System.out.println(s"PRK1:                                                                       ${asHex(receiverPrivateKey)}")
       System.out.println(s"PRK2: ${asHex(receiverKeyPair.getPrivate().getEncoded())}")
+      System.out.println(s"PRK3:                                                                       ${asHex(Utils.getRawPrivateKeyFromKeyPair(receiverKeyPair))}")
 
-      //      assert(receiverKeyPair.getPrivate().getEncoded() == receiverPrivateKey)
-      //      assert(receiverKeyPair.getPublic().getEncoded() == receiverPublicKey)
+      assert(Utils.getRawPublicKeyFromKeyPair(receiverKeyPair) === receiverPublicKey)
+      assert(Utils.getRawPrivateKeyFromKeyPair(receiverKeyPair) === receiverPrivateKey)
 
-      // val senderPrivateKey = Base64.decodeBase64("wYza2jFsueGMg6AAlxm0_UhmBL_782YHUlCDeMq5Yvw=")
+      val senderPrivateKey = Base64.decodeBase64("wYza2jFsueGMg6AAlxm0_UhmBL_782YHUlCDeMq5Yvw=")
       val senderPublicKey = Base64.decodeBase64(
         "BP1LWtbxuJHy1zueo7OFGV4sOwfjU5ys_xoz136ks3FvRxDTPiW_40ZRMhAcR6EDvPajgpwGeZ9bMV3OX1ivzw0="
       )
+      val senderKeyPair = Utils.constructECDHKeyPairFromKeys(
+        senderPublicKey, senderPrivateKey
+      )
+      System.out.println(s"--- ${senderKeyPair}")
 
       val encrypted = Base64.decodeBase64("FznvD2JYAa-OByaB1jPSE7M8CFCBIRf-Aaec_XUFtNHG")
       val salt = Base64.decodeBase64("VSvun_YGfd3EXHb6DMRBkw")
@@ -73,7 +79,7 @@ class EncryptSpec extends FixtureSpec {
       )
       System.out.println(s"III: ${asHex(answerSecret)}")
       System.out.println(s"JJJ: ${asHex(secret)}")
-      assert(secret == answerSecret)
+      assert(secret === answerSecret)
 
       val opts = new Options(secret, salt)
       val decrypted: Array[Byte] = Codec.decrypt(encrypted, opts).get

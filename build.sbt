@@ -178,7 +178,7 @@ libraryDependencies ++= Seq(
 // , "org.joda"                          % "joda-money"                       % "0.11"
 // , "org.jsoup"                         % "jsoup"                            % "1.8.3"
 // , "org.scalactic"                    %% "scalactic"                        % "2.2.6"
- "com.github.karasiq" 				 %% "cryptoutils" 					   % "1.3"
+  "com.github.karasiq" 				 %% "cryptoutils" 					   % "1.3"
 , "commons-codec"	 				  % "commons-codec" 				   % "1.10"
 , "org.scalamock"                    %% "scalamock-scalatest-support"      % "3.2.2"        % Test
 , "org.scalatest"                    %% "scalatest"                        % "2.2.6"        % Test
@@ -246,7 +246,7 @@ testScalastyle := org.scalastyle.sbt.ScalastylePlugin.scalastyle.in(Test).toTask
 wartremoverErrors ++= Seq(
   Wart.Any
 , Wart.Any2StringAdd
-, Wart.AsInstanceOf
+//, Wart.AsInstanceOf
 , Wart.EitherProjectionPartial
 //Wart.Enumeration
 , Wart.ExplicitImplicitTypes

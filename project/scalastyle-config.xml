@@ -181,12 +181,6 @@
       <parameter name="words">TODO|FIXME</parameter>
     </parameters>
   </check>
-  <check class="org.scalastyle.scalariform.TokenChecker" enabled="true" level="error">
-    <parameters>
-      <parameter name="regex">^[ai]sInstanceOf$</parameter>
-    </parameters>
-    <customMessage>Avoid casting, use pattern matching instead</customMessage>
-  </check>
   <check class="org.scalastyle.scalariform.TokenChecker" enabled="true" level="warn">
     <parameters>
       <parameter name="regex">^print(?:ln)?$</parameter>

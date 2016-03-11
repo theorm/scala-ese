@@ -29,6 +29,16 @@ import org.bouncycastle.jce.spec.ECPrivateKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.EncodedKeySpec
+import javax.crypto.interfaces.DHPrivateKey
+import javax.crypto.interfaces.DHPublicKey
+import javax.crypto.spec.DHParameterSpec
+import javax.crypto.KeyAgreement
+import javax.crypto.SecretKey
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters
+import org.bouncycastle.crypto.util.PrivateKeyFactory
+import org.bouncycastle.math.ec.ECCurve
+import org.bouncycastle.crypto.params.ECDomainParameters
+import org.bouncycastle.crypto.params.ECPublicKeyParameters
 
 object Utils {
   final val KeyLength: Int = 16;
@@ -75,13 +85,18 @@ object Utils {
   }
 
   def getECDHSharedSecret(keyPair: KeyPair, pubKey: PublicKey): Array[Byte] = {
-    val agreement: BasicAgreement = new ECDHBasicAgreement()
-    agreement.init(ECUtil.generatePrivateKeyParameter(keyPair.getPrivate()))
-    val sharedSecret: BigInteger = agreement.calculateAgreement(
-      ECUtil.generatePublicKeyParameter(pubKey)
-    )
-    // make key fixed length : http://bit.ly/1Qmiu7K
-    BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, sharedSecret)
+    val ecdhPrivateKeyParameters: ECPrivateKeyParameters = PrivateKeyFactory.createKey(
+      keyPair.getPrivate().getEncoded()
+    ).asInstanceOf[ECPrivateKeyParameters];
+
+    val clientPublicKey: ECPublicKeyParameters = PublicKeyFactory.createKey(
+      pubKey.getEncoded()
+    ).asInstanceOf[ECPublicKeyParameters]
+
+    val agree: BasicAgreement = new ECDHBasicAgreement();
+    agree.init(ecdhPrivateKeyParameters);
+    val secret: Array[Byte] = agree.calculateAgreement(clientPublicKey).toByteArray();
+    BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, new BigInteger(secret))
   }
 
   def generateECDHKeyPair(): KeyPair = {
@@ -118,4 +133,31 @@ object Utils {
   def asHex(buf: Array[Byte]): String = {
     buf.map("%02X" format _).mkString
   }
+
+  /**
+   * http://stackoverflow.com/questions/19323178/how-to-do-diffie-hellman-key-generation-and-retrieve-raw-key-bytes-in-java
+   */
+  def getXYPGFromKeyPair(pair: KeyPair): Tuple4[Array[Byte], Array[Byte], Array[Byte], Array[Byte]] = {
+    val x = pair.getPrivate().asInstanceOf[DHPrivateKey].getX().toByteArray()
+    val y = pair.getPublic().asInstanceOf[DHPublicKey].getY().toByteArray()
+    val params = pair.getPublic().asInstanceOf[DHPublicKey].getParams()
+    val p = params.getP().toByteArray()
+    val g = params.getG().toByteArray()
+    Tuple4(x, y, p, g)
+  }
+
+  def getRawPublicKeyFromKeyPair(pair: KeyPair): Array[Byte] = {
+    val publicKey: ECPublicKeyParameters = PublicKeyFactory.createKey(
+      pair.getPublic().getEncoded()
+    ).asInstanceOf[ECPublicKeyParameters]
+    publicKey.getQ().getEncoded(false)
+  }
+
+  def getRawPrivateKeyFromKeyPair(pair: KeyPair): Array[Byte] = {
+    val ecdhPrivateKeyParameters: ECPrivateKeyParameters = PrivateKeyFactory.createKey(
+      pair.getPrivate().getEncoded()
+    ).asInstanceOf[ECPrivateKeyParameters];
+    BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, ecdhPrivateKeyParameters.getD())
+  }
+
 }
