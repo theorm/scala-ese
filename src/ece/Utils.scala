@@ -39,6 +39,7 @@ import org.bouncycastle.crypto.util.PrivateKeyFactory
 import org.bouncycastle.math.ec.ECCurve
 import org.bouncycastle.crypto.params.ECDomainParameters
 import org.bouncycastle.crypto.params.ECPublicKeyParameters
+import org.apache.commons.codec.binary.Base64
 
 object Utils {
   final val KeyLength: Int = 16;
@@ -158,6 +159,23 @@ object Utils {
       pair.getPrivate().getEncoded()
     ).asInstanceOf[ECPrivateKeyParameters];
     BigIntegers.asUnsignedByteArray(Utils.KeyLength * 2, ecdhPrivateKeyParameters.getD())
+  }
+
+  def lengthPrefix(data: Array[Byte]): Array[Byte] = {
+    val lengthArray: Array[Byte] = Array.fill(1)(0.toByte) ++ data.length.toByteArray
+    lengthArray ++ data
+  }
+
+  def getDHContext(receiverPublicKey: Array[Byte], senderPublicKey: Array[Byte]): Array[Byte] = {
+    // System.out.println(s"XYZ: ${asHex(lengthPrefix(receiverPublicKey))}")
+    "P-256".toCharArray().map(_.toByte) ++
+      Array.fill(1)(0.toChar).map(_.toByte) ++
+      lengthPrefix(receiverPublicKey) ++
+      lengthPrefix(senderPublicKey)
+  }
+
+  def asB64(data: Array[Byte]): String = {
+    Base64.encodeBase64URLSafeString(data)
   }
 
 }

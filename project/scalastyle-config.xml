@@ -8,7 +8,7 @@
   </check>
   <check class="org.scalastyle.file.FileLineLengthChecker" enabled="true" level="error">
     <parameters>
-      <parameter name="maxLineLength">300</parameter>
+      <parameter name="maxLineLength">500</parameter>
       <parameter name="tabSize">2</parameter>
       <parameter name="ignoreImports">false</parameter>
     </parameters>
@@ -121,7 +121,7 @@
   </check>
   <check class="org.scalastyle.scalariform.MultipleStringLiteralsChecker" enabled="true" level="error">
     <parameters>
-      <parameter name="allowed">10</parameter>
+      <parameter name="allowed">20</parameter>
       <parameter name="ignoreRegex">^\"\"$</parameter>
     </parameters>
   </check>
