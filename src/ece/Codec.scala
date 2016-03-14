@@ -151,4 +151,19 @@ object Codec {
       result
     }
   }
+
+  def encryptForReceiver(data: Array[Byte], receiverPubKeyBase64: String): Try[EncryptedContext] = {
+    val receiverPublicKey = Utils.getPublicKeyFromBytes(Base64.decodeBase64(receiverPubKeyBase64))
+    val senderPair = Utils.generateECDHKeyPair()
+    val sharedSecret = Utils.getECDHSharedSecret(senderPair, receiverPublicKey)
+
+    val salt = Utils.generateSalt()
+    val opts = new Options(secret = sharedSecret, salt = salt, padSize = 1)
+
+    val encrypted: Try[Array[Byte]] = Codec.encrypt(data, opts)
+    encrypted.map { e =>
+      new EncryptedContext(e, Base64.encodeBase64URLSafeString(Utils.getRawPublicKeyFromKeyPair(senderPair)),
+        Base64.encodeBase64URLSafeString(salt))
+    }
+  }
 }
