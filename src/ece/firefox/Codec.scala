@@ -14,7 +14,7 @@ import org.bouncycastle.crypto.params.HKDFParameters
 import java.math.BigInteger
 import javax.crypto.Mac
 import javax.crypto.SecretKey
-import ece.Utils
+import ece.{Utils, EncryptedContext}
 
 object Codec {
   def hdkfExpand(prk: Array[Byte], header: Array[Byte], length: Int, salt: Array[Byte]): Array[Byte] = {

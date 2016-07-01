@@ -5,7 +5,7 @@ import ece.Utils
 import java.security.SecureRandom
 import org.apache.commons.codec.binary.Base64
 
-class EncryptSpec extends FixtureSpec {
+class FirefoxEncryptSpec extends FixtureSpec {
   //  1. random public key
   val randomSecret: Array[Byte] = Array.ofDim(Utils.KeyLength)
   val rg = new SecureRandom()
