@@ -8,24 +8,12 @@ import java.security.AlgorithmParameters
 import java.security.spec.AlgorithmParameterSpec
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
-import org.bouncycastle.crypto.generators.HKDFBytesGenerator
-import org.bouncycastle.crypto.digests.SHA256Digest
-import org.bouncycastle.crypto.params.HKDFParameters
 import java.math.BigInteger
 import javax.crypto.Mac
 import javax.crypto.SecretKey
 import ece.{Utils, EncryptedContext}
 
 object Codec {
-  def hdkfExpand(prk: Array[Byte], header: Array[Byte], length: Int, salt: Array[Byte]): Array[Byte] = {
-    val hkdf: HKDFBytesGenerator = new HKDFBytesGenerator(new SHA256Digest());
-    hkdf.init(new HKDFParameters(prk, salt, header))
-
-    val output: Array[Byte] = Array.fill(length)(0.toByte)
-    hkdf.generateBytes(output, 0, length)
-    output
-  }
-
   def decryptRecord(secret: Array[Byte], salt: Array[Byte], counter: Int,
     data: Array[Byte], padSize: Int): Array[Byte] = {
     val iv: Array[Byte] = Utils.generateIV(salt, counter)
@@ -71,12 +59,12 @@ object Codec {
         throw new Exception("Record size is too small")
       }
 
-      val secret: Array[Byte] = hdkfExpand(
+      val secret: Array[Byte] = Utils.hdkfExpand(
         opts.secret,
         buildInfo("aesgcm128", opts.context), Utils.KeyLength,
         opts.salt
       )
-      val salt: Array[Byte] = hdkfExpand(
+      val salt: Array[Byte] = Utils.hdkfExpand(
         opts.secret,
         buildInfo("nonce", opts.context), Utils.NonceLength,
         opts.salt
@@ -124,12 +112,12 @@ object Codec {
         throw new Exception("Record size is too small")
       }
 
-      val secret: Array[Byte] = hdkfExpand(
+      val secret: Array[Byte] = Utils.hdkfExpand(
         opts.secret,
         buildInfo("aesgcm128", opts.context), Utils.KeyLength,
         opts.salt
       )
-      val salt: Array[Byte] = hdkfExpand(
+      val salt: Array[Byte] = Utils.hdkfExpand(
         opts.secret,
         buildInfo("nonce", opts.context), Utils.NonceLength,
         opts.salt
