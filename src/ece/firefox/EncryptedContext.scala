@@ -1,4 +1,4 @@
-package ece
+package ece.firefox
 
 class EncryptedContext(
   val cipherText: Array[Byte],

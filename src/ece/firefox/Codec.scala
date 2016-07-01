@@ -1,4 +1,4 @@
-package ece;
+package ece.firefox;
 
 import org.apache.commons.codec.binary.Base64
 import scala.util.Try
@@ -14,6 +14,7 @@ import org.bouncycastle.crypto.params.HKDFParameters
 import java.math.BigInteger
 import javax.crypto.Mac
 import javax.crypto.SecretKey
+import ece.Utils
 
 object Codec {
   def hdkfExpand(prk: Array[Byte], header: Array[Byte], length: Int, salt: Array[Byte]): Array[Byte] = {
