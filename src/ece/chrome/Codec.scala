@@ -1,7 +1,7 @@
 package ece.chrome
 
 import ece.{Utils, EncryptedContext}
-import scala.util.Try
+import scala.util.{Try, Success, Failure}
 import org.apache.commons.codec.binary.Base64
 import java.security.{PublicKey, KeyPair}
 import javax.crypto.Cipher
@@ -11,7 +11,9 @@ object Codec {
   val PRKLengthBytes = 32
   val EncryptionKeyLength = 16
   val NonceLength = 12
+  val AuthTokenLength = 16
   val PublicKeyLength = 65
+  val MaxPayloadLength = 4078
 
   val AuthInfo = "Content-Encoding: auth".toCharArray().map(_.toByte) ++
     Array.fill(1)(0.toChar).map(_.toByte)
@@ -95,6 +97,15 @@ object Codec {
 
   def encrypt(data: Array[Byte], opts: Options): Try[Array[Byte]] = {
     Try {
+      if (opts.clientAuthToken.length != AuthTokenLength) {
+        throw new Exception("Subscription's Auth token is not 16 bytes.")
+      }
+
+      // The maximum size of the message + padding is 4078 bytes
+      if (data.length > MaxPayloadLength) {
+        throw new Exception(s"Payload is too large. The max number of bytes is $MaxPayloadLength.")
+      }
+
       // Derive a Pseudo-Random Key (prk) that can be used to further derive our
       // other encryption parameters. These derivations are described in
       // https://tools.ietf.org/html/draft-ietf-httpbis-encryption-encoding-00
@@ -129,28 +140,32 @@ object Codec {
     }
   }
 
-  def encryptForReceiver(data: Array[Byte], receiverPubKeyBase64: String, receiverAuthBase64: String, saltBase64: Option[String], senderPairOption: Option[KeyPair]): Try[EncryptedContext] = {
-    val receiverPublicKey = Utils.getPublicKeyFromBytes(Base64.decodeBase64(receiverPubKeyBase64))
-    val senderPair = senderPairOption.getOrElse(Utils.generateECDHKeyPair())
+  def encryptForReceiver(data: Array[Byte], receiverPubKeyBase64: String, receiverAuthBase64: String, saltBase64: Option[String] = None, senderPairOption: Option[KeyPair] = None): Try[EncryptedContext] = {
+    Try(Utils.getPublicKeyFromBytes(Base64.decodeBase64(receiverPubKeyBase64))).transform({ receiverPublicKey =>
+      val senderPair = senderPairOption.getOrElse(Utils.generateECDHKeyPair())
 
-    val sharedSecret = Utils.getECDHSharedSecret(senderPair, receiverPublicKey)
-    // get salt from parameter or generate new salt
-    val salt = saltBase64.map(s => Base64.decodeBase64(s)).getOrElse(Utils.generateSalt())
+      val sharedSecret = Utils.getECDHSharedSecret(senderPair, receiverPublicKey)
+      // get salt from parameter or generate new salt
+      val salt = saltBase64.map(s => Base64.decodeBase64(s)).getOrElse(Utils.generateSalt())
 
-    // generate "context"
-    val context = createContext(receiverPublicKey, senderPair.getPublic())
+      // generate "context"
+      val context = createContext(receiverPublicKey, senderPair.getPublic())
 
-    val opts = new Options(sharedSecret = sharedSecret, salt = salt,
-      senderPublicKey = senderPair.getPublic(), receiverPublicKey = receiverPublicKey,
-      clientAuthToken = Base64.decodeBase64(receiverAuthBase64), context = context)
+      val opts = new Options(sharedSecret = sharedSecret, salt = salt,
+        senderPublicKey = senderPair.getPublic(), receiverPublicKey = receiverPublicKey,
+        clientAuthToken = Base64.decodeBase64(receiverAuthBase64), context = context)
 
-    val encrypted: Try[Array[Byte]] = Codec.encrypt(data, opts)
-    encrypted.map { e =>
-      new EncryptedContext(
-        e,
-        Base64.encodeBase64URLSafeString(Utils.getRawPublicKeyFromKeyPair(senderPair)),
-        Base64.encodeBase64URLSafeString(salt)
-      )
-    }
+      Codec.encrypt(data, opts).map { encrypted =>
+        new EncryptedContext(
+          encrypted,
+          Base64.encodeBase64URLSafeString(Utils.getRawPublicKeyFromKeyPair(senderPair)),
+          Base64.encodeBase64URLSafeString(salt)
+        )
+      }
+    }, { e =>
+      Try[EncryptedContext] {
+        throw new Exception("Subscription's client key (p256dh) is invalid.")
+      }
+    })
   }
 }

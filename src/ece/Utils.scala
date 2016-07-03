@@ -197,6 +197,12 @@ object Utils {
     Base64.encodeBase64URLSafeString(data)
   }
 
+  def urlsafeB64(input: String): String = {
+    Base64.encodeBase64URLSafeString(
+      Base64.decodeBase64(input)
+    )
+  }
+
   def toUnsignedTwoBytesArray(number: Int): Array[Byte] = {
     BigIntegers.asUnsignedByteArray(2, BigInteger.valueOf(number))
   }
