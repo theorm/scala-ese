@@ -3,7 +3,7 @@ package ece.chrome
 import ece.{Utils, EncryptedContext}
 import scala.util.Try
 import org.apache.commons.codec.binary.Base64
-import java.security.PublicKey
+import java.security.{PublicKey, KeyPair}
 import javax.crypto.Cipher
 import javax.crypto.spec.{GCMParameterSpec, SecretKeySpec}
 
@@ -129,12 +129,14 @@ object Codec {
     }
   }
 
-  def encryptForReceiver(data: Array[Byte], receiverPubKeyBase64: String, receiverAuthBase64: String, saltBase64: Option[String]): Try[EncryptedContext] = {
+  def encryptForReceiver(data: Array[Byte], receiverPubKeyBase64: String, receiverAuthBase64: String, saltBase64: Option[String], senderPairOption: Option[KeyPair]): Try[EncryptedContext] = {
     val receiverPublicKey = Utils.getPublicKeyFromBytes(Base64.decodeBase64(receiverPubKeyBase64))
-    val senderPair = Utils.generateECDHKeyPair()
+    val senderPair = senderPairOption.getOrElse(Utils.generateECDHKeyPair())
+
     val sharedSecret = Utils.getECDHSharedSecret(senderPair, receiverPublicKey)
     // get salt from parameter or generate new salt
     val salt = saltBase64.map(s => Base64.decodeBase64(s)).getOrElse(Utils.generateSalt())
+
     // generate "context"
     val context = createContext(receiverPublicKey, senderPair.getPublic())
 

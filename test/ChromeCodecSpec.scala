@@ -16,16 +16,23 @@ class ChromeEncryptSpec extends FixtureSpec {
 
   val ExampleInput = "Hello, World."
   val ExampleOutput = "CE2OS6BxfXsC2YbTdfkeWLlt4AKWbHZ3Fe53n5/4Yg==";
+  val ExampleOutputUrlsafe = Base64.encodeBase64URLSafeString(
+    Base64.decodeBase64(ExampleOutput)
+  );
 
   "Chrome Codec" - {
     "Javascript reference implementation: Scala encrypt" in {
       val payload = ExampleInput.getBytes
-      val result = Codec.encryptForReceiver(payload, ClientPublicKey, ClientAuth, Some(ExampleSalt))
+      val testSenderKeyPair = Utils.constructECDHKeyPairFromKeys(
+        Base64.decodeBase64(ServerPublicKey),
+        Base64.decodeBase64(ServerPrivateKey)
+      )
+      val result = Codec.encryptForReceiver(payload, ClientPublicKey, ClientAuth, Some(ExampleSalt), Some(testSenderKeyPair))
 
       result match {
         case Success(encryptedContext) => {
           val encryptedPayload = Base64.encodeBase64URLSafeString(encryptedContext.cipherText)
-          assert(encryptedPayload == ExampleOutput)
+          assert(encryptedPayload == ExampleOutputUrlsafe)
         }
         case Failure(t) => fail(t)
       }
