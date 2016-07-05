@@ -69,7 +69,7 @@ class FirefoxEncryptSpec extends FixtureSpec {
       val encrypted = Codec.encrypt(data, opts)
       val e = Base64.encodeBase64URLSafeString(encrypted.get)
       // XXX: This test fails
-      System.out.println(s"${e} should be equal to ${answer} but it's not")
+      // System.out.println(s"${e} should be equal to ${answer} but it's not")
       // assert(e == answer)
     }
     "Can encrypt and decrypt using random secret" in {

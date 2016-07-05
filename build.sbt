@@ -71,7 +71,7 @@ scalacOptions ++= commonScalacOptions ++ Seq(
 , "-optimise" // Generates faster bytecode by applying optimisations to the program
 , "-unchecked" // Enable additional warnings where generated code depends on assumptions
 //"-Xdev" // Indicates user is a developer - issue warnings about anything which seems amiss (Doesn't play well with ScalaTest)
-, "-Xfatal-warnings" // Fail the compilation if there are any warnings
+//, "-Xfatal-warnings" // Fail the compilation if there are any warnings
 , "-Xlint:_" // Enable or disable specific warnings (see list below)
 , "-Yclosure-elim" // Perform closure elimination
 , "-Yconst-opt" // Perform optimization with constant values
@@ -281,7 +281,7 @@ scapegoatDisabledInspections := Seq.empty
  * Linter: http://github.com/HairyFotr/linter
  */
 
-addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")
+addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.14")
 
 scalacOptions += "-P:linter:enable-only:" +
   "AssigningOptionToNull+" +
@@ -356,7 +356,6 @@ scalacOptions += "-P:linter:enable-only:" +
   "UseContainsNotExistsEquals+" +
   "UseCountNotFilterLength+" +
   "UseExistsNotCountCompare+" +
-  "UseExistsNotFilterEmpty+" +
   "UseExistsNotFilterIsEmpty+" +
   "UseExistsNotFindIsDefined+" +
   "UseExp+" +
@@ -476,3 +475,5 @@ shellPrompt := { state =>
   val name = p.getOpt(sbt.Keys.name) getOrElse p.currentProject.id
   s"$BLUE$BOLD$name$RESET $BOLD\u25b6$RESET "
 }
+
+publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
