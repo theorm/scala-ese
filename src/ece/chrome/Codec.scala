@@ -22,7 +22,7 @@ object Codec {
    * Returns an info record. See sections 3.2 and 3.3 of
    * {@link https://tools.ietf.org/html/draft-ietf-httpbis-encryption-encoding-00}
    *
-   * A rip-off of
+   * Reference:
    * https://github.com/GoogleChrome/web-push-encryption/blob/master/src/encrypt.js
    */
   def buildInfo(t: String, context: Array[Byte]): Array[Byte] = {
@@ -45,7 +45,7 @@ object Codec {
    * See section 4.2 of
    * {@link https://tools.ietf.org/html/draft-ietf-httpbis-encryption-encoding-00}
    *
-   * A rip-off of
+   * Reference:
    * https://github.com/GoogleChrome/web-push-encryption/blob/master/src/encrypt.js
    */
   def createContext(receiverPublicKey: PublicKey, senderPublicKey: PublicKey): Array[Byte] = {
