@@ -1,6 +1,15 @@
 # Encryped Content-Encoding for HTTP
 
+## Firefox
+
 Scala version of [https://github.com/martinthomson/encrypted-content-encoding](https://github.com/martinthomson/encrypted-content-encoding) which is based on [https://tools.ietf.org/html/draft-nottingham-http-encryption-encoding-00](https://tools.ietf.org/html/draft-nottingham-http-encryption-encoding-00).
+
+## Google Chrome
+
+[Explanation](https://developers.google.com/web/updates/2016/03/web-push-encryption?hl=en)
+[Reference implementation](https://github.com/GoogleChrome/web-push-encryption)
+[RFC](https://tools.ietf.org/html/rfc5869)
+
 
 ## Tasks
 
