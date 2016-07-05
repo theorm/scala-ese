@@ -40,6 +40,9 @@ import org.bouncycastle.math.ec.ECCurve
 import org.bouncycastle.crypto.params.ECDomainParameters
 import org.bouncycastle.crypto.params.ECPublicKeyParameters
 import org.apache.commons.codec.binary.Base64
+import org.bouncycastle.crypto.generators.HKDFBytesGenerator
+import org.bouncycastle.crypto.digests.SHA256Digest
+import org.bouncycastle.crypto.params.HKDFParameters
 
 object Utils {
   final val KeyLength: Int = 16;
@@ -49,6 +52,15 @@ object Utils {
   final val DefaultPadSize: Int = 2;
 
   Security.addProvider(new BouncyCastleProvider())
+
+  def hdkfExpand(prk: Array[Byte], header: Array[Byte], length: Int, salt: Array[Byte]): Array[Byte] = {
+    val hkdf: HKDFBytesGenerator = new HKDFBytesGenerator(new SHA256Digest());
+    hkdf.init(new HKDFParameters(prk, salt, header))
+
+    val output: Array[Byte] = Array.fill(length)(0.toByte)
+    hkdf.generateBytes(output, 0, length)
+    output
+  }
 
   /**
    * Returns salt as Base64 encoded string.
@@ -154,6 +166,13 @@ object Utils {
     publicKey.getQ().getEncoded(false)
   }
 
+  def getRawPublicKeyFromPublicKey(pk: PublicKey): Array[Byte] = {
+    val publicKey: ECPublicKeyParameters = PublicKeyFactory.createKey(
+      pk.getEncoded()
+    ).asInstanceOf[ECPublicKeyParameters]
+    publicKey.getQ().getEncoded(false)
+  }
+
   def getRawPrivateKeyFromKeyPair(pair: KeyPair): Array[Byte] = {
     val ecdhPrivateKeyParameters: ECPrivateKeyParameters = PrivateKeyFactory.createKey(
       pair.getPrivate().getEncoded()
@@ -176,6 +195,16 @@ object Utils {
 
   def asB64(data: Array[Byte]): String = {
     Base64.encodeBase64URLSafeString(data)
+  }
+
+  def urlsafeB64(input: String): String = {
+    Base64.encodeBase64URLSafeString(
+      Base64.decodeBase64(input)
+    )
+  }
+
+  def toUnsignedTwoBytesArray(number: Int): Array[Byte] = {
+    BigIntegers.asUnsignedByteArray(2, BigInteger.valueOf(number))
   }
 
 }

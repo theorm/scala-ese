@@ -20,7 +20,7 @@
 
 name := "scala-ece"
 
-version := "0.2"
+version := "1.0.0"
 
 description := "Scala implementation of https://tools.ietf.org/html/draft-thomson-http-encryption-01"
 

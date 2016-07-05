@@ -1,11 +1,11 @@
 package project
 
-import ece.{Codec, Options, Utils}
+import ece.firefox.{Codec, Options}
+import ece.Utils
 import java.security.SecureRandom
-import ece.Options
 import org.apache.commons.codec.binary.Base64
 
-class EncryptSpec extends FixtureSpec {
+class FirefoxEncryptSpec extends FixtureSpec {
   //  1. random public key
   val randomSecret: Array[Byte] = Array.ofDim(Utils.KeyLength)
   val rg = new SecureRandom()

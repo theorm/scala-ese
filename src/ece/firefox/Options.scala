@@ -1,4 +1,6 @@
-package ece;
+package ece.firefox;
+
+import ece.Utils
 
 class Options(
   val secret: Array[Byte],
